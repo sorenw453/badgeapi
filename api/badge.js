@@ -4,75 +4,58 @@ export default function handler(req, res) {
     status = "OK",
     color = "green",
     style = "flat",
-    padding = "6",
   } = req.query;
 
-  const pad = parseInt(padding, 10);
+  const pad = 6;
   const fontSize = 11;
   const height = 20;
+  const radius = style === "pill" ? height / 2 : style === "rounded" ? 4 : 0;
 
   const labelWidth = Math.ceil(label.length * fontSize * 0.6) + pad * 2;
   const statusWidth = Math.ceil(status.length * fontSize * 0.6) + pad * 2;
-  const width = labelWidth + statusWidth;
-  const radius = height / 2;
 
-  function roundedRectPath(x, y, w, h, r, leftSide) {
-  if (leftSide) {
-    return `
-      M${x + r},${y}
-      H${x + w}      /* straight top inner edge */
-      V${y + h}      /* straight right edge */
-      H${x + r}      /* vertical line before bottom-left curve */
-      A${r},${r} 0 0 1 ${x},${y + h - r}  /* bottom-left curve */
-      V${y + r}      /* vertical left edge */
-      A${r},${r} 0 0 1 ${x + r},${y}      /* top-left curve */
-      Z
-    `;
-  } else {
-    return `
-      M${x},${y}            /* top-left corner (inner edge) */
-      H${x + w - r}        /* horizontal line before top-right curve */
-      A${r},${r} 0 0 1 ${x + w},${y + r}  /* top-right curve */
-      V${y + h - r}        /* vertical right edge */
-      A${r},${r} 0 0 1 ${x + w - r},${y + h}  /* bottom-right curve */
-      H${x}                /* straight bottom inner edge */
-      V${y}                /* back to start */
-      Z
-    `;
-  }
-}
-  let svg;
+  const labelStyle = [
+    "background:#555",
+    "color:#fff",
+    "padding:0 " + pad + "px",
+    "font-family:Verdana,sans-serif",
+    "font-size:" + fontSize + "px",
+    "line-height:" + height + "px",
+    "user-select:none",
+    radius && style === "pill" ? `border-radius:${radius}px 0 0 ${radius}px` : "",
+    radius && style === "rounded" ? `border-radius:${radius}px 0 0 ${radius}px` : "",
+    "display:inline-block",
+    "white-space:nowrap",
+  ].filter(Boolean).join(";");
 
-  if (style === "pill") {
-    svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <rect width="${labelWidth}" height="${height}" fill="#555" rx="${radius}" ry="${radius}"/>
-      <rect x="${labelWidth}" width="${statusWidth}" height="${height}" fill="${color}" rx="${radius}" ry="${radius}"/>
-      <text x="${labelWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${label}</text>
-      <text x="${labelWidth + statusWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${status}</text>
-    </svg>
-    `.trim();
-  } else if (style === "rounded") {
-    svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <path d="${roundedRectPath(0, 0, labelWidth, height, radius, true)}" fill="#555"/>
-      <path d="${roundedRectPath(labelWidth, 0, statusWidth, height, radius, false)}" fill="${color}"/>
-      <text x="${labelWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${label}</text>
-      <text x="${labelWidth + statusWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${status}</text>
-    </svg>
-    `.trim();
-  } else {
-    svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <rect width="${labelWidth}" height="${height}" fill="#555"/>
-      <rect x="${labelWidth}" width="${statusWidth}" height="${height}" fill="${color}"/>
-      <text x="${labelWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${label}</text>
-      <text x="${labelWidth + statusWidth / 2}" y="14" fill="#fff" font-family="Verdana" font-size="${fontSize}" text-anchor="middle">${status}</text>
-    </svg>
-    `.trim();
-  }
+  const statusStyle = [
+    `background:${color}`,
+    "color:#fff",
+    "padding:0 " + pad + "px",
+    "font-family:Verdana,sans-serif",
+    "font-size:" + fontSize + "px",
+    "line-height:" + height + "px",
+    "user-select:none",
+    radius && style === "pill" ? `border-radius:0 ${radius}px ${radius}px 0` : "",
+    radius && style === "rounded" ? `border-radius:0 ${radius}px ${radius}px 0` : "",
+    "display:inline-block",
+    "white-space:nowrap",
+  ].filter(Boolean).join(";");
 
-  res.setHeader("Content-Type", "image/svg+xml");
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="UTF-8"></head>
+    <body style="margin:0;">
+      <div style="display:inline-flex; font-weight:700;">
+        <span style="${labelStyle}">${label}</span>
+        <span style="${statusStyle}">${status}</span>
+      </div>
+    </body>
+    </html>
+  `;
+
+  res.setHeader("Content-Type", "text/html");
   res.setHeader("Cache-Control", "s-maxage=1, stale-while-revalidate");
-  res.status(200).send(svg);
+  res.status(200).send(html.trim());
 }
