@@ -1,6 +1,7 @@
 # badgeapi
 ![Status](https://badgeapi.vercel.app/api/badge?label=API&status=online&color=%2300f000&style=rounded)
 ![Stars](https://badgeapi.vercel.app/api/github?repo=sorenw453/badgeapi&metric=stars&style=rounded)
+
 An API for generating GitHub Badges to be used in Markdown Files. Renders HTML inside SVGs via `<foreignObject>`, which allows more customization but may not be supported in legacy Environments.
 ## Features
 ### Static Badges
