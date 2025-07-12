@@ -1,32 +1,26 @@
-// github.js
 export default async function handler(req, res) {
   const {
-    metric = "stars",
-    repo = "",
+    metric = "downloads",
+    pkg = "",
     color: colorOverride,
     style = "flat",
     padding = "6",
   } = req.query;
 
-  if (!repo || !repo.includes("/")) {
-    res.status(400).send("Invalid or missing repo param. Use owner/repo format.");
+  if (!pkg) {
+    res.status(400).send("Invalid or missing pkg param");
     return;
   }
 
-  const [owner, repoName] = repo.split("/");
   const pad = parseInt(padding, 10);
   const fontSize = 11;
   const height = 20;
   const radius = style === "pill" ? height / 2 : style === "rounded" ? 4 : 0;
 
-  const token = process.env.GITHUB_PAT;
-  const headers = token ? { Authorization: `token ${token}` } : {};
-
   const COLOR_MAP = {
-    stars: "#D4AF37",
-    issues: "red",
-    prs: "blue",
-    watchers: "green",
+    downloads: "#d90000ff",
+    version: "#d90000ff",
+    dependents: "#4c1",
   };
 
   let status = "";
@@ -34,32 +28,19 @@ export default async function handler(req, res) {
   let color = colorOverride || COLOR_MAP[metric] || "green";
 
   try {
-    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, { headers });
-    if (!repoRes.ok) throw new Error("Failed to fetch repo");
-    const repoData = await repoRes.json();
-
-    if (metric === "stars") {
-      status = repoData.stargazers_count.toString();
-    } else if (metric === "issues") {
-      status = repoData.open_issues_count.toString();
-    } else if (metric === "watchers") {
-      status = repoData.subscribers_count.toString();
-    } else if (metric === "prs") {
-      const prsRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repoName}/pulls?state=open&per_page=1`,
-        { headers }
-      );
-      if (!prsRes.ok) throw new Error("Failed to fetch PRs");
-      const linkHeader = prsRes.headers.get("link");
-      if (linkHeader) {
-        const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
-        status = match ? match[1] : "0";
-      } else {
-        const prsData = await prsRes.json();
-        status = prsData.length.toString();
-      }
+    if (metric === "downloads") {
+      const npmRes = await fetch(`https://api.npmjs.org/downloads/point/last-week/${pkg}`);
+      if (!npmRes.ok) throw new Error("Failed to fetch downloads");
+      const data = await npmRes.json();
+      status = data.downloads?.toLocaleString() || "0";
+    } else if (metric === "version") {
+      const npmRes = await fetch(`https://registry.npmjs.org/${pkg}`);
+      if (!npmRes.ok) throw new Error("Failed to fetch package info");
+      const data = await npmRes.json();
+      status = data["dist-tags"]?.latest || "N/A";
     } else {
       status = "N/A";
+      color = "lightgrey";
     }
   } catch {
     status = "error";
@@ -73,7 +54,14 @@ export default async function handler(req, res) {
   const htmlBadge = `
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
     <foreignObject x="0" y="0" width="${width}" height="${height}">
-      <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex; font-family:Verdana,sans-serif; font-size:${fontSize}px; height:${height}px; line-height:${height}px; user-select:none;">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="
+        display:flex;
+        font-family:Verdana,sans-serif;
+        font-size:${fontSize}px;
+        height:${height}px;
+        line-height:${height}px;
+        user-select:none;
+      ">
         <div style="
           background:#555;
           color:#fff;

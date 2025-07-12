@@ -1,3 +1,4 @@
+// badge.js
 export default function handler(req, res) {
   const {
     label = "Badge Generator",
